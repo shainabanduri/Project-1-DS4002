@@ -4,11 +4,11 @@
 
 ## 1. Software and Platform
 
-### Software Used
+### Software Used: VSCode
 
 ### Required Packages
 
-### Platform
+### Platform: Windows
 
 ## 2. Map of the Documentation
 
