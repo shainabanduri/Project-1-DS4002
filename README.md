@@ -46,14 +46,14 @@ Project-1-DS4002/
 ├── requirements.txt
 ├── scripts/
 │   ├── preprocessing.py          # Step 1: Cleans raw tweet data
-│   └── analysis.py               # Step 2: VADER scoring, theme tagging,
-│                                  #         t-test, regression, plots
+│   ├── analysis.py               # Step 2: VADER scoring, theme tagging,
+│   │                              #         t-test, regression, plots
+│   └── generate_data_appendix.py # Step 3: Generates Data Appendix PDF
 ├── data/
-│   └── archive/
-│       ├── covid-19_vaccine_tweets_with_sentiment.csv   # Raw data (14,151 tweets)
-│       ├── covid19_vaccine_tweets_cleaned.csv            # After preprocessing (6,000 tweets)
-│       ├── covid19_vaccine_tweets_analyzed.csv           # After analysis (with VADER scores & themes)
-│       └── data_appendix.pdf                             # Variable-level documentation
+│   ├── covid-19_vaccine_tweets_with_sentiment.csv   # Raw data (14,151 tweets)
+│   ├── covid19_vaccine_tweets_cleaned.csv            # After preprocessing (6,000 tweets)
+│   ├── covid19_vaccine_tweets_analyzed.csv           # After analysis (with VADER scores & themes)
+│   └── data_appendix.pdf                             # Variable-level documentation
 └── output/
     ├── summary_statistics_by_theme.csv                   # Theme-level summary stats
     ├── top_50_words.csv                                  # 50 most frequent words
@@ -81,14 +81,14 @@ Project-1-DS4002/
 
 ### Step 1: Preprocessing
 
-Run the preprocessing script to clean the raw tweet data. This reads `data/archive/covid-19_vaccine_tweets_with_sentiment.csv`, removes null rows, lowercases text, strips URLs, @mentions, and `#` symbols, and writes the cleaned output.
+Run the preprocessing script to clean the raw tweet data. This reads `data/covid-19_vaccine_tweets_with_sentiment.csv`, removes null rows, lowercases text, strips URLs, @mentions, and `#` symbols, and writes the cleaned output.
 
 ```
 python scripts/preprocessing.py
 ```
 
-**Input:** `data/archive/covid-19_vaccine_tweets_with_sentiment.csv` (14,151 rows)
-**Output:** `data/archive/covid19_vaccine_tweets_cleaned.csv` (6,000 rows)
+**Input:** `data/covid-19_vaccine_tweets_with_sentiment.csv` (14,151 rows)
+**Output:** `data/covid19_vaccine_tweets_cleaned.csv` (6,000 rows)
 
 ### Step 2: Analysis
 
@@ -98,7 +98,7 @@ Run the analysis script to compute VADER sentiment scores, categorize tweets int
 python scripts/analysis.py
 ```
 
-**Input:** `data/archive/covid19_vaccine_tweets_cleaned.csv`
+**Input:** `data/covid19_vaccine_tweets_cleaned.csv`
 **Outputs (all saved to `output/`):**
 - `summary_statistics_by_theme.csv` -- mean, median, std of VADER compound by theme
 - `top_50_words.csv` -- the 50 most frequent words after stopword removal
@@ -108,11 +108,22 @@ python scripts/analysis.py
 - `hypothesis_test_results.txt` -- one-sided Welch's t-test (safety vs access)
 - `regression_summary.txt` -- OLS regression with covariates
 
-**Additional output:** `data/archive/covid19_vaccine_tweets_analyzed.csv` (final dataset with all computed columns)
+**Additional output:** `data/covid19_vaccine_tweets_analyzed.csv` (final dataset with all computed columns)
+
+### Step 3: Generate Data Appendix
+
+Run the data appendix script to produce the required Data Appendix PDF in the data folder. This must be run after `analysis.py` since it reads the analyzed dataset.
+
+```
+python scripts/generate_data_appendix.py
+```
+
+**Input:** `data/covid19_vaccine_tweets_analyzed.csv`
+**Output:** `data/data_appendix.pdf`
 
 ### Verifying Results
 
-After running both scripts, the `output/` folder should contain 7 files. Key results to check:
+After running all three scripts, the `output/` folder should contain 7 files. Key results to check:
 - The hypothesis test should show p < 0.05 (safety tweets are significantly more negative than access tweets).
 - The regression coefficient for `theme_safety` should be negative and significant.
 

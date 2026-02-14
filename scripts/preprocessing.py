@@ -6,7 +6,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Build path to data file
-data_path = BASE_DIR / "data" / "archive" / "covid-19_vaccine_tweets_with_sentiment.csv"
+data_path = BASE_DIR / "data" / "covid-19_vaccine_tweets_with_sentiment.csv"
 
 df = pd.read_csv(data_path, encoding="latin1")
 
@@ -35,6 +35,6 @@ df["tweet_text"] = df["tweet_text"].apply(
 )
 
 #save cleaned data
-df.to_csv(BASE_DIR / "data" / "archive" /"covid19_vaccine_tweets_cleaned.csv", index=False)
+df.to_csv(BASE_DIR / "data" / "covid19_vaccine_tweets_cleaned.csv", index=False)
 
 print("Preprocessing complete. Cleaned file saved.")

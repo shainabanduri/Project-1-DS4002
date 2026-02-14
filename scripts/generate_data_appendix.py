@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data" / "archive"
+DATA_DIR = BASE_DIR / "data"
 OUTPUT_PATH = DATA_DIR / "data_appendix.pdf"
 
 # Load the analyzed dataset (has all variables)

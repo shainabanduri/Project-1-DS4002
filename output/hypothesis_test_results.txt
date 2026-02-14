@@ -8,15 +8,15 @@ H1: mu(safety) <  mu(access)
 
 Significance level: alpha = 0.05
 
-Safety tweets  (n = 711):
-  Mean VADER compound: 0.0100
-  Std:                 0.5518
+Safety tweets  (n = 716):
+  Mean VADER compound: 0.0261
+  Std:                 0.4880
 
-Access tweets  (n = 1962):
-  Mean VADER compound: 0.1580
-  Std:                 0.4378
+Access tweets  (n = 1671):
+  Mean VADER compound: 0.1724
+  Std:                 0.4351
 
-t-statistic:         -6.4548
+t-statistic:         -6.9268
 p-value (one-sided): 0.000000
 
 Result: REJECT H0 (p = 0.000000 < 0.05)

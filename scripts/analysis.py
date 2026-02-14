@@ -1,9 +1,5 @@
 # ============================================================================
-# analysis.py
-# DS 4002 - Project 1: Sentiment Shifts in Vaccine-Related Tweets by Theme
-# Group: Model Citizens (Shaina Banduri, Neil Parikh, Nishana Dahal)
-#
-# This script performs the full analysis pipeline:
+# Performs the full analysis pipeline:
 #   1. Load cleaned tweet data
 #   2. Compute VADER sentiment scores for each tweet
 #   3. Identify the top 50 most common words in the dataset
@@ -35,25 +31,21 @@ import seaborn as sns
 # Configuration
 # ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data" / "archive"
+DATA_DIR = BASE_DIR / "data"
 OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 ALPHA = 0.05  # significance level for the hypothesis test
 
-# ---------------------------------------------------------------------------
 # 1. Load Cleaned Data
-# ---------------------------------------------------------------------------
 print("Step 1 - Loading cleaned data...")
 df = pd.read_csv(DATA_DIR / "covid19_vaccine_tweets_cleaned.csv")
 print(f"  Loaded {len(df)} tweets with columns: {list(df.columns)}")
 
-# ---------------------------------------------------------------------------
 # 2. Compute VADER Sentiment Scores
 #    VADER produces four scores per text: positive, negative, neutral, and a
 #    normalized compound score in [-1, 1]. The compound score is the primary
 #    metric used in our analysis.
-# ---------------------------------------------------------------------------
 print("\nStep 2 - Computing VADER sentiment scores...")
 analyzer = SentimentIntensityAnalyzer()
 
@@ -69,15 +61,11 @@ print(f"    Mean:   {df['vader_compound'].mean():.4f}")
 print(f"    Median: {df['vader_compound'].median():.4f}")
 print(f"    Std:    {df['vader_compound'].std():.4f}")
 
-# ---------------------------------------------------------------------------
 # 3. Compute Tweet Length (character count) - used as a covariate later
-# ---------------------------------------------------------------------------
 df["tweet_length"] = df["tweet_text"].astype(str).apply(len)
 
-# ---------------------------------------------------------------------------
 # 4. Identify Top 50 Most Common Words
 #    We tokenise on whitespace, remove common English stopwords, and count.
-# ---------------------------------------------------------------------------
 print("\nStep 3 - Identifying top 50 most common words...")
 
 STOPWORDS = {
@@ -120,69 +108,39 @@ print("  Top 50 words saved to output/top_50_words.csv")
 for w, c in top_50[:15]:
     print(f"    {w}: {c}")
 
-# ---------------------------------------------------------------------------
 # 5. Define Theme Keyword Dictionaries
-#    Each theme is a list of keywords. A tweet belongs to a theme if at least
-#    one keyword appears as a standalone word in the tweet text.
-# ---------------------------------------------------------------------------
+#    Per the MI2 analysis plan, we categorize the top 50 most common words
+#    into the four themes below. Only words from the top-50 list are used.
+#    Words that are geographic (russia, india, canada, etc.) or non-semantic
+#    (&amp;, ??) are excluded. Brand names are tracked separately as a covariate.
 
-# Safety / side-effects keywords
-safety_keywords = [
-    "side", "effect", "effects", "sideeffects", "sideeffect",
-    "death", "deaths", "die", "died", "dying",
-    "blood", "clot", "clots", "adverse", "reaction",
-    "paralysis", "allergy", "allergic", "pain", "sore",
-    "fatigue", "fever", "harm", "risk", "danger", "dangerous",
-    "injury", "hospitalized", "myocarditis", "thrombosis",
-    "concern", "worried", "afraid", "fear", "scary",
-    "safe", "safety", "unsafe", "warning",
-]
+# Safety / side-effects: top-50 words relating to risk, harm, or concern
+safety_keywords = ["side", "against", "cases", "lockdown"]
 
-# Access / appointments keywords
-access_keywords = [
-    "appointment", "appointments", "register", "registration", "signup",
-    "available", "availability", "rollout", "distribution", "supply",
-    "dose", "doses", "shot", "shots", "jab",
-    "schedule", "book", "booking", "pharmacy", "clinic",
-    "center", "site", "drive", "hub",
-    "receive", "received", "getting", "administered",
-]
+# Access / appointments: top-50 words relating to getting vaccinated
+access_keywords = ["dose", "doses", "shot", "2nd", "1st", "received", "getting", "jab"]
 
-# Eligibility keywords
-eligibility_keywords = [
-    "eligible", "eligibility", "age", "group", "phase",
-    "priority", "qualify", "qualified", "wait", "waiting",
-    "turn", "senior", "seniors",
-    "elderly", "frontline", "healthcare", "worker", "workers",
-    "essential",
-]
+# Eligibility: no top-50 words are eligibility-specific, so this theme
+# will have zero matches; we keep it for completeness per the plan.
+eligibility_keywords = []
 
-# General information keywords
+# General information: top-50 words relating to vaccines, covid, or health news
 general_keywords = [
     "vaccine", "vaccines", "vaccination", "vaccinated",
-    "covid", "covid19", "coronavirus", "pandemic",
-    "news", "update", "report", "study", "research",
-    "trial", "trials", "efficacy", "effective", "effectiveness",
-    "approved", "approval", "fda", "cdc", "eua",
-    "emergency", "authorization", "data", "results",
+    "covid19", "covid", "coronavirus", "covid-19",
+    "covidvaccine", "covid19vaccine",
+    "health", "effective", "approved", "million", "use",
 ]
 
 # Vaccine-brand keywords (used as a covariate, not a theme)
 brand_keywords = [
-    "pfizer", "pfizerbiontech", "biontech",
-    "moderna",
-    "astrazeneca", "oxfordastrazeneca", "oxford",
-    "johnson", "janssen",
-    "sputnik", "sputnikv",
-    "sinovac", "sinopharm",
-    "covaxin", "covishield",
-    "novavax",
+    "moderna", "covaxin", "sputnikv", "pfizerbiontech", "pfizer",
+    "astrazeneca", "oxfordastrazeneca", "sinopharm", "sinovac",
+    "covishield", "sputnik",
 ]
 
-# ---------------------------------------------------------------------------
 # 6. Categorize Each Tweet into Themes
 #    A tweet can belong to more than one theme.
-# ---------------------------------------------------------------------------
 print("\nStep 4 - Categorizing tweets by theme...")
 
 def has_theme(text, keywords):
@@ -209,14 +167,15 @@ for name, col in theme_map.items():
 print(f"  Brand Mention: {df['brand_mention'].sum()} tweets "
       f"({df['brand_mention'].mean()*100:.1f}%)")
 
-# ---------------------------------------------------------------------------
 # 7. Summary Statistics by Theme
-# ---------------------------------------------------------------------------
 print("\nStep 5 - Computing summary statistics by theme...")
 
 summary_rows = []
 for theme_name, col in theme_map.items():
     subset = df[df[col]]
+    if len(subset) == 0:
+        print(f"\n  {theme_name}: 0 tweets (skipped)")
+        continue
     row = {
         "Theme": theme_name,
         "N": len(subset),
@@ -242,9 +201,7 @@ summary_df = pd.DataFrame(summary_rows)
 summary_df.to_csv(OUTPUT_DIR / "summary_statistics_by_theme.csv", index=False)
 print("\n  Saved: output/summary_statistics_by_theme.csv")
 
-# ---------------------------------------------------------------------------
 # 8. Plots
-# ---------------------------------------------------------------------------
 print("\nStep 6 - Generating plots...")
 sns.set_style("whitegrid")
 plt.rcParams["figure.dpi"] = 150
@@ -271,13 +228,15 @@ plt.savefig(OUTPUT_DIR / "sentiment_distribution_safety_vs_access.png")
 plt.close()
 print("  Saved: sentiment_distribution_safety_vs_access.png")
 
-# --- Plot 2: Box plot of compound score across all four themes ---
+# --- Plot 2: Box plot of compound score across themes with data ---
+# Skip themes with 0 tweets (eligibility has no top-50 keywords)
+active_themes = {k: v for k, v in theme_map.items() if df[v].sum() > 0}
 fig, ax = plt.subplots(figsize=(10, 6))
-theme_data   = [df.loc[df[col], "vader_compound"] for col in theme_map.values()]
-theme_labels = list(theme_map.keys())
+theme_data   = [df.loc[df[col], "vader_compound"] for col in active_themes.values()]
+theme_labels = list(active_themes.keys())
+colors = ["#FF6B6B", "#4ECDC4", "#96CEB4"]
 bp = ax.boxplot(theme_data, labels=theme_labels, patch_artist=True,
                 boxprops=dict(alpha=0.7))
-colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"]
 for patch, color in zip(bp["boxes"], colors):
     patch.set_facecolor(color)
 ax.set_ylabel("VADER Compound Score", fontsize=12)
@@ -291,8 +250,8 @@ print("  Saved: boxplot_sentiment_by_theme.png")
 
 # --- Plot 3: Bar chart of mean compound by theme ---
 fig, ax = plt.subplots(figsize=(8, 5))
-means = [df.loc[df[col], "vader_compound"].mean() for col in theme_map.values()]
-bars = ax.bar(theme_map.keys(), means, color=colors, alpha=0.8, edgecolor="black")
+means = [df.loc[df[col], "vader_compound"].mean() for col in active_themes.values()]
+bars = ax.bar(list(active_themes.keys()), means, color=colors, alpha=0.8, edgecolor="black")
 for bar, m in zip(bars, means):
     ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.005,
             f"{m:.3f}", ha="center", va="bottom", fontsize=10)
@@ -305,11 +264,9 @@ plt.savefig(OUTPUT_DIR / "mean_sentiment_by_theme.png")
 plt.close()
 print("  Saved: mean_sentiment_by_theme.png")
 
-# ---------------------------------------------------------------------------
 # 9. Hypothesis Test - One-Sided Welch's t-test
 #    H0: mu_safety >= mu_access   (safety NOT more negative)
 #    H1: mu_safety <  mu_access   (safety IS more negative)
-# ---------------------------------------------------------------------------
 print("\nStep 7 - One-Sided Welch's t-test (safety vs access)...")
 
 t_stat, p_two = stats.ttest_ind(safety_scores, access_scores, equal_var=False)
@@ -359,11 +316,9 @@ with open(OUTPUT_DIR / "hypothesis_test_results.txt", "w") as f:
                 "than access-themed tweets.\n")
 print("  Saved: output/hypothesis_test_results.txt")
 
-# ---------------------------------------------------------------------------
 # 10. Linear Regression with Covariates
 #     Outcome: VADER compound score
 #     Predictors: is_safety (binary), tweet_length, brand_mention (binary)
-# ---------------------------------------------------------------------------
 print("\nStep 8 - OLS Linear Regression...")
 
 reg_df = df[["vader_compound", "theme_safety", "tweet_length", "brand_mention"]].copy()
@@ -388,11 +343,9 @@ with open(OUTPUT_DIR / "regression_summary.txt", "w") as f:
         f.write(f"  {name:20s}  coef={coef:+.6f}  p={pval:.6f} {sig}\n")
 print("  Saved: output/regression_summary.txt")
 
-# ---------------------------------------------------------------------------
 # 11. Save Final Analyzed Dataset
-# ---------------------------------------------------------------------------
 df.to_csv(DATA_DIR / "covid19_vaccine_tweets_analyzed.csv", index=False)
-print(f"\nFinal analyzed dataset saved to data/archive/covid19_vaccine_tweets_analyzed.csv")
+print(f"\nFinal analyzed dataset saved to data/covid19_vaccine_tweets_analyzed.csv")
 
 print("\n" + "=" * 50)
 print("Analysis complete. All outputs are in the output/ folder.")

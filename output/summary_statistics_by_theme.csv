@@ -1,5 +1,4 @@
 Theme,N,Mean Compound,Std Compound,Median Compound,% Negative (< -0.05),% Neutral,% Positive (> 0.05),Mean Tweet Length
-Safety/Side Effects,711,0.01,0.5518,0.0,43.0,13.2,43.7,193.2
-Access/Appointments,1962,0.158,0.4378,0.0,18.6,37.5,43.9,170.5
-Eligibility,450,0.1601,0.4536,0.0,21.3,32.4,46.2,192.5
-General Information,3987,0.1278,0.4464,0.0,23.3,30.9,45.8,176.2
+Safety/Side Effects,716,0.0261,0.488,0.0,37.6,17.5,45.0,204.9
+Access/Appointments,1671,0.1724,0.4351,0.0,17.4,37.5,45.1,166.6
+General Information,4179,0.1279,0.4458,0.0,22.8,31.8,45.3,175.0
