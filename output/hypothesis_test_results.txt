@@ -1,0 +1,23 @@
+One-Sided Welch's Two-Sample t-Test
+==================================================
+
+H0: mu(safety) >= mu(access)
+    Safety-related tweets are NOT more negative than access-related tweets.
+H1: mu(safety) <  mu(access)
+    Safety-related tweets have significantly more negative sentiment.
+
+Significance level: alpha = 0.05
+
+Safety tweets  (n = 711):
+  Mean VADER compound: 0.0100
+  Std:                 0.5518
+
+Access tweets  (n = 1962):
+  Mean VADER compound: 0.1580
+  Std:                 0.4378
+
+t-statistic:         -6.4548
+p-value (one-sided): 0.000000
+
+Result: REJECT H0 (p = 0.000000 < 0.05)
+Safety-themed tweets have significantly more negative sentiment than access-themed tweets.
