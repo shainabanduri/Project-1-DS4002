@@ -6,6 +6,7 @@ At the top level of the repository, the following files and folders are included
 - **README.md** -- This file. Orientation guide covering software requirements, folder structure, and reproduction instructions.
 - **LICENSE.md** -- MIT License specifying terms of use and citation.
 - **requirements.txt** -- Python package dependencies for reproducing the analysis.
+- **MI4 Presentation.pdf** -- Final project presentation slides.
 - **scripts/** -- All source code (preprocessing and analysis), executed in numbered order.
 - **data/** -- Raw and processed datasets, plus a Data Appendix PDF.
 - **output/** -- All generated figures, tables, and result files.
@@ -44,6 +45,7 @@ Project-1-DS4002/
 ├── README.md
 ├── LICENSE.md
 ├── requirements.txt
+├── MI4 Presentation.pdf
 ├── scripts/
 │   ├── preprocessing.py          # Step 1: Cleans raw tweet data
 │   ├── analysis.py               # Step 2: VADER scoring, theme tagging,
