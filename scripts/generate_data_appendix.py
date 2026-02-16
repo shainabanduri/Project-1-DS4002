@@ -1,14 +1,12 @@
 # ============================================================================
-# generate_data_appendix.py
-# DS 4002 - Project 1: Sentiment Shifts in Vaccine-Related Tweets by Theme
-# Group: Model Citizens (Shaina Banduri, Neil Parikh, Nishana Dahal)
-#
-# This script generates a Data Appendix PDF for the DATA folder.
-# The appendix documents every variable in each dataset used in the analysis.
+# Generates a Data Appendix PDF following the TIER Protocol 4.0 format.
+# Includes: variable definitions, missing data counts, full summary stats
+# (mean, std, min, 25th, median, 75th, max) with histograms for quantitative
+# variables, and frequency tables with bar charts for categorical variables.
 #
 # Prerequisites:
 #   - Run preprocessing.py and analysis.py first
-#   - Install packages: pip install matplotlib pandas
+#   - Install packages: pip install matplotlib pandas seaborn
 # ============================================================================
 
 import pandas as pd
@@ -18,29 +16,76 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+import seaborn as sns
+
+sns.set_style("whitegrid")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 OUTPUT_PATH = DATA_DIR / "data_appendix.pdf"
 
-# Load the analyzed dataset (has all variables)
+# Load all three datasets
+df_raw = pd.read_csv(DATA_DIR / "covid-19_vaccine_tweets_with_sentiment.csv", encoding="latin1")
+df_clean = pd.read_csv(DATA_DIR / "covid19_vaccine_tweets_cleaned.csv")
 df = pd.read_csv(DATA_DIR / "covid19_vaccine_tweets_analyzed.csv")
 
-# Helper to add a page of text
-def add_text_page(pdf, lines, fontsize=10):
-    """Render a list of text lines as a single PDF page."""
+# ---- Helpers ----
+
+def text_page(pdf, lines, fontsize=9.5):
+    """Render lines of text as a PDF page."""
     fig, ax = plt.subplots(figsize=(8.5, 11))
     ax.axis("off")
-    text = "\n".join(lines)
-    ax.text(0.05, 0.95, text, transform=ax.transAxes, fontsize=fontsize,
-            verticalalignment="top", fontfamily="monospace", wrap=True)
+    ax.text(0.05, 0.95, "\n".join(lines), transform=ax.transAxes,
+            fontsize=fontsize, verticalalignment="top", fontfamily="monospace")
     pdf.savefig(fig)
     plt.close(fig)
 
+def quant_stats(series):
+    """Return formatted summary-stat lines for a quantitative variable."""
+    n = len(series)
+    m = int(series.isna().sum())
+    desc = series.describe()
+    return [
+        f"    Observations: {n}   Missing: {m}",
+        f"    Mean:   {desc['mean']:.4f}",
+        f"    Std:    {desc['std']:.4f}",
+        f"    Min:    {desc['min']:.4f}",
+        f"    25th:   {desc['25%']:.4f}",
+        f"    Median: {desc['50%']:.4f}",
+        f"    75th:   {desc['75%']:.4f}",
+        f"    Max:    {desc['max']:.4f}",
+    ]
+
+def hist_page(pdf, series, title, xlabel, color="#4ECDC4"):
+    """Render a histogram on its own PDF page."""
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.hist(series.dropna(), bins=40, color=color, edgecolor="black", alpha=0.75)
+    ax.set_title(title, fontsize=13)
+    ax.set_xlabel(xlabel, fontsize=11)
+    ax.set_ylabel("Frequency", fontsize=11)
+    plt.tight_layout()
+    pdf.savefig(fig)
+    plt.close(fig)
+
+def bar_page(pdf, labels, counts, title, xlabel, color="#4ECDC4"):
+    """Render a bar chart on its own PDF page."""
+    fig, ax = plt.subplots(figsize=(8, 5))
+    bars = ax.bar(labels, counts, color=color, edgecolor="black", alpha=0.75)
+    for bar, c in zip(bars, counts):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(counts)*0.01,
+                str(c), ha="center", va="bottom", fontsize=10)
+    ax.set_title(title, fontsize=13)
+    ax.set_xlabel(xlabel, fontsize=11)
+    ax.set_ylabel("Count", fontsize=11)
+    plt.tight_layout()
+    pdf.savefig(fig)
+    plt.close(fig)
+
+
 with PdfPages(OUTPUT_PATH) as pdf:
 
-    # ---- Page 1: Title & Overview ----
-    lines = [
+    # ==== TITLE PAGE ====
+    text_page(pdf, [
         "DATA APPENDIX",
         "=" * 60,
         "",
@@ -50,152 +95,201 @@ with PdfPages(OUTPUT_PATH) as pdf:
         "Course:  DS 4002",
         "Date:    Feb. 2026",
         "",
-        "This appendix documents every variable in the datasets used",
-        "in this project. Three CSV files are described below:",
+        "This appendix documents every variable in the datasets",
+        "used in this project, following the TIER Protocol 4.0.",
         "",
-        "  1. covid-19_vaccine_tweets_with_sentiment.csv  (raw data)",
-        "  2. covid19_vaccine_tweets_cleaned.csv           (after preprocessing)",
-        "  3. covid19_vaccine_tweets_analyzed.csv           (after analysis)",
-        "",
+        "Datasets documented:",
+        "  1. covid-19_vaccine_tweets_with_sentiment.csv (raw)",
+        "  2. covid19_vaccine_tweets_cleaned.csv         (preprocessed)",
+        "  3. covid19_vaccine_tweets_analyzed.csv         (final analysis)",
+    ])
+
+    # ==== DATASET 1: RAW ====
+    text_page(pdf, [
         "=" * 60,
-        "",
         "DATASET 1: Raw Data",
         "File: covid-19_vaccine_tweets_with_sentiment.csv",
-        f"Rows: 14,151   Columns: 3",
+        f"Rows: {len(df_raw):,}   Columns: {len(df_raw.columns)}",
         "",
         "Unit of observation: One tweet from Twitter related to",
         "COVID-19 vaccines, with a human-annotated sentiment label.",
         "",
-        "Variables:",
+        "--- Variable: tweet_id (float64) ---",
+        "  Unique numerical ID for each tweet.",
+        "  Source: Original Kaggle dataset.",
+        f"  Observations: {len(df_raw)}   Missing: {int(df_raw['tweet_id'].isna().sum())}",
         "",
-        "  tweet_id    (float64)",
-        "    Unique numerical ID for each tweet.",
-        "    Example: 1.360342e+18",
+        "--- Variable: label (int64) ---",
+        "  Human-annotated sentiment label.",
+        "  Values: 1 = Negative, 2 = Neutral, 3 = Positive.",
+        "  Source: Original Kaggle dataset (human annotators).",
+        f"  Observations: {len(df_raw)}   Missing: {int(df_raw['label'].isna().sum())}",
+        f"  Distribution:",
+        f"    1 (Negative): {(df_raw['label']==1).sum()}",
+        f"    2 (Neutral):  {(df_raw['label']==2).sum()}",
+        f"    3 (Positive): {(df_raw['label']==3).sum()}",
         "",
-        "  label       (int64)",
-        "    Human-annotated sentiment label.",
-        "    Values: 1 = Negative, 2 = Neutral, 3 = Positive",
-        "",
-        "  tweet_text  (string)",
-        "    Full text content of the tweet, including hashtags,",
-        "    URLs, and @mentions.",
-        "",
-    ]
-    add_text_page(pdf, lines)
+        "--- Variable: tweet_text (string) ---",
+        "  Full text content of the tweet including hashtags,",
+        "  URLs, and @mentions.",
+        "  Source: Original Kaggle dataset.",
+        f"  Observations: {len(df_raw)}   Missing: {int(df_raw['tweet_text'].isna().sum())}",
+    ])
 
-    # ---- Page 2: Cleaned Dataset ----
-    lines = [
+    # Bar chart for raw label distribution
+    lbl_counts_raw = df_raw["label"].value_counts().sort_index()
+    bar_page(pdf, ["Negative (1)", "Neutral (2)", "Positive (3)"],
+             lbl_counts_raw.values.tolist(),
+             "Raw Data: Distribution of Sentiment Labels", "Label",
+             color="#FF6B6B")
+
+    # ==== DATASET 2: CLEANED ====
+    text_page(pdf, [
+        "=" * 60,
         "DATASET 2: Cleaned Data",
         "File: covid19_vaccine_tweets_cleaned.csv",
-        f"Rows: 6,000   Columns: 3",
+        f"Rows: {len(df_clean):,}   Columns: {len(df_clean.columns)}",
         "",
         "Unit of observation: One cleaned tweet. Rows with missing",
-        "tweet text were removed. Text was lowercased, URLs removed,",
-        "@mentions removed, # symbols stripped, whitespace normalized.",
+        "tweet_text were removed during preprocessing. Text was",
+        "lowercased, URLs removed, @mentions removed, # symbols",
+        "stripped (hashtag text preserved), whitespace normalized.",
         "",
-        "Variables:",
+        "--- Variable: tweet_id (float64) ---",
+        "  Same as raw data. Unique tweet identifier.",
+        f"  Observations: {len(df_clean)}   Missing: {int(df_clean['tweet_id'].isna().sum())}",
         "",
-        "  tweet_id    (float64)",
-        "    Same as raw data. Unique tweet identifier.",
+        "--- Variable: label (int64) ---",
+        "  Same as raw data.",
+        f"  Observations: {len(df_clean)}   Missing: {int(df_clean['label'].isna().sum())}",
+        f"  Distribution:",
+        f"    1 (Negative): {(df_clean['label']==1).sum()} ({(df_clean['label']==1).mean()*100:.1f}%)",
+        f"    2 (Neutral):  {(df_clean['label']==2).sum()} ({(df_clean['label']==2).mean()*100:.1f}%)",
+        f"    3 (Positive): {(df_clean['label']==3).sum()} ({(df_clean['label']==3).mean()*100:.1f}%)",
         "",
-        "  label       (int64)",
-        "    Same as raw data.",
-        "    Distribution in cleaned set:",
-        f"      1 (Negative): {(df['label']==1).sum()}  "
-        f"({(df['label']==1).mean()*100:.1f}%)",
-        f"      2 (Neutral):  {(df['label']==2).sum()}  "
-        f"({(df['label']==2).mean()*100:.1f}%)",
-        f"      3 (Positive): {(df['label']==3).sum()}  "
-        f"({(df['label']==3).mean()*100:.1f}%)",
-        "",
-        "  tweet_text  (string)",
-        "    Cleaned tweet text. All lowercase, no URLs, no @mentions,",
-        "    no # symbols (hashtag text preserved), single-spaced.",
-        "",
-    ]
-    add_text_page(pdf, lines)
+        "--- Variable: tweet_text (string) ---",
+        "  Cleaned tweet text. All lowercase, no URLs, no @mentions,",
+        "  no # symbols (hashtag text preserved), single-spaced.",
+        f"  Observations: {len(df_clean)}   Missing: {int(df_clean['tweet_text'].isna().sum())}",
+    ])
 
-    # ---- Page 3: Analyzed Dataset - Part 1 ----
-    lines = [
+    # Bar chart for cleaned label distribution
+    lbl_counts = df_clean["label"].value_counts().sort_index()
+    bar_page(pdf, ["Negative (1)", "Neutral (2)", "Positive (3)"],
+             lbl_counts.values.tolist(),
+             "Cleaned Data: Distribution of Sentiment Labels", "Label",
+             color="#4ECDC4")
+
+    # ==== DATASET 3: ANALYZED (text descriptions) ====
+    text_page(pdf, [
+        "=" * 60,
         "DATASET 3: Analyzed Data",
         "File: covid19_vaccine_tweets_analyzed.csv",
-        f"Rows: {len(df)}   Columns: {len(df.columns)}",
+        f"Rows: {len(df):,}   Columns: {len(df.columns)}",
         "",
         "Unit of observation: One cleaned tweet enriched with VADER",
-        "sentiment scores and theme/brand indicator flags.",
+        "sentiment scores and theme/brand indicator flags computed",
+        "by analysis.py.",
         "",
         "Original variables (same as cleaned data):",
-        "  tweet_id, label, tweet_text",
+        "  tweet_id, label, tweet_text -- see Dataset 2 above.",
         "",
-        "--- Added Variables ---",
-        "",
-        "  vader_compound  (float64)",
-        "    VADER normalised compound sentiment score [-1, 1].",
-        "    -1 = most negative, +1 = most positive.",
-        f"    Mean:   {df['vader_compound'].mean():.4f}",
-        f"    Median: {df['vader_compound'].median():.4f}",
-        f"    Std:    {df['vader_compound'].std():.4f}",
-        f"    Min:    {df['vader_compound'].min():.4f}",
-        f"    Max:    {df['vader_compound'].max():.4f}",
-        "",
-        "  vader_pos  (float64)",
-        "    Proportion of text with positive sentiment [0, 1].",
-        f"    Mean: {df['vader_pos'].mean():.4f}",
-        "",
-        "  vader_neg  (float64)",
-        "    Proportion of text with negative sentiment [0, 1].",
-        f"    Mean: {df['vader_neg'].mean():.4f}",
-        "",
-        "  vader_neu  (float64)",
-        "    Proportion of text with neutral sentiment [0, 1].",
-        f"    Mean: {df['vader_neu'].mean():.4f}",
-        "",
-        "  tweet_length  (int64)",
-        "    Character count of the cleaned tweet text.",
-        f"    Mean:   {df['tweet_length'].mean():.1f}",
-        f"    Median: {df['tweet_length'].median():.1f}",
-        f"    Min:    {df['tweet_length'].min()}",
-        f"    Max:    {df['tweet_length'].max()}",
-    ]
-    add_text_page(pdf, lines)
+        "The following pages document each added variable with",
+        "summary statistics and visualizations.",
+    ])
 
-    # ---- Page 4: Analyzed Dataset - Part 2 (theme flags) ----
-    lines = [
-        "DATASET 3 (continued): Theme & Brand Indicator Flags",
+    # --- vader_compound ---
+    text_page(pdf, [
+        "--- Variable: vader_compound (float64) ---",
+        "  VADER normalised compound sentiment score.",
+        "  Range: [-1, 1]. -1 = most negative, +1 = most positive.",
+        "  Source: Computed from tweet_text using vaderSentiment.",
         "",
-        "  theme_safety  (bool)",
-        "    True if the tweet contains at least one keyword from",
-        "    the safety/side-effects dictionary.",
-        f"    True:  {df['theme_safety'].sum()} ({df['theme_safety'].mean()*100:.1f}%)",
-        f"    False: {(~df['theme_safety']).sum()} ({(~df['theme_safety']).mean()*100:.1f}%)",
+    ] + quant_stats(df["vader_compound"]))
+
+    hist_page(pdf, df["vader_compound"],
+              "Histogram: vader_compound", "VADER Compound Score", "#FF6B6B")
+
+    # --- vader_pos ---
+    text_page(pdf, [
+        "--- Variable: vader_pos (float64) ---",
+        "  Proportion of text tokens with positive sentiment [0, 1].",
+        "  Source: Computed from tweet_text using vaderSentiment.",
         "",
-        "  theme_access  (bool)",
-        "    True if the tweet contains at least one keyword from",
-        "    the access/appointments dictionary.",
-        f"    True:  {df['theme_access'].sum()} ({df['theme_access'].mean()*100:.1f}%)",
-        f"    False: {(~df['theme_access']).sum()} ({(~df['theme_access']).mean()*100:.1f}%)",
+    ] + quant_stats(df["vader_pos"]))
+
+    hist_page(pdf, df["vader_pos"],
+              "Histogram: vader_pos", "Positive Proportion", "#96CEB4")
+
+    # --- vader_neg ---
+    text_page(pdf, [
+        "--- Variable: vader_neg (float64) ---",
+        "  Proportion of text tokens with negative sentiment [0, 1].",
+        "  Source: Computed from tweet_text using vaderSentiment.",
         "",
-        "  theme_eligibility  (bool)",
-        "    True if the tweet contains at least one keyword from",
-        "    the eligibility dictionary.",
-        f"    True:  {df['theme_eligibility'].sum()} ({df['theme_eligibility'].mean()*100:.1f}%)",
-        f"    False: {(~df['theme_eligibility']).sum()} ({(~df['theme_eligibility']).mean()*100:.1f}%)",
+    ] + quant_stats(df["vader_neg"]))
+
+    hist_page(pdf, df["vader_neg"],
+              "Histogram: vader_neg", "Negative Proportion", "#FF6B6B")
+
+    # --- vader_neu ---
+    text_page(pdf, [
+        "--- Variable: vader_neu (float64) ---",
+        "  Proportion of text tokens with neutral sentiment [0, 1].",
+        "  Source: Computed from tweet_text using vaderSentiment.",
         "",
-        "  theme_general  (bool)",
-        "    True if the tweet contains at least one keyword from",
-        "    the general-information dictionary.",
-        f"    True:  {df['theme_general'].sum()} ({df['theme_general'].mean()*100:.1f}%)",
-        f"    False: {(~df['theme_general']).sum()} ({(~df['theme_general']).mean()*100:.1f}%)",
+    ] + quant_stats(df["vader_neu"]))
+
+    hist_page(pdf, df["vader_neu"],
+              "Histogram: vader_neu", "Neutral Proportion", "#45B7D1")
+
+    # --- tweet_length ---
+    text_page(pdf, [
+        "--- Variable: tweet_length (int64) ---",
+        "  Character count of the cleaned tweet text.",
+        "  Source: Computed as len(tweet_text) in analysis.py.",
         "",
-        "  brand_mention  (bool)",
-        "    True if the tweet mentions at least one vaccine brand",
-        "    (Pfizer, Moderna, AstraZeneca, Covaxin, etc.).",
-        f"    True:  {df['brand_mention'].sum()} ({df['brand_mention'].mean()*100:.1f}%)",
-        f"    False: {(~df['brand_mention']).sum()} ({(~df['brand_mention']).mean()*100:.1f}%)",
-        "",
+    ] + quant_stats(df["tweet_length"]))
+
+    hist_page(pdf, df["tweet_length"],
+              "Histogram: tweet_length", "Number of Characters", "#4ECDC4")
+
+    # --- Categorical / boolean variables ---
+    bool_vars = {
+        "theme_safety":      "True if tweet contains a safety/side-effects keyword.\n"
+                             "    Source: Keyword matching in analysis.py.",
+        "theme_access":      "True if tweet contains an access/appointments keyword.\n"
+                             "    Source: Keyword matching in analysis.py.",
+        "theme_eligibility": "True if tweet contains an eligibility keyword.\n"
+                             "    Source: Keyword matching in analysis.py.",
+        "theme_general":     "True if tweet contains a general-information keyword.\n"
+                             "    Source: Keyword matching in analysis.py.",
+        "brand_mention":     "True if tweet mentions a vaccine brand name.\n"
+                             "    Source: Keyword matching in analysis.py.",
+    }
+
+    for var, desc in bool_vars.items():
+        t_count = int(df[var].sum())
+        f_count = int((~df[var]).sum())
+        m_count = int(df[var].isna().sum())
+        text_page(pdf, [
+            f"--- Variable: {var} (bool) ---",
+            f"  {desc}",
+            f"  Observations: {len(df)}   Missing: {m_count}",
+            f"  Frequency table:",
+            f"    True:  {t_count} ({t_count/len(df)*100:.1f}%)",
+            f"    False: {f_count} ({f_count/len(df)*100:.1f}%)",
+        ])
+
+        bar_page(pdf, ["True", "False"], [t_count, f_count],
+                 f"Bar Chart: {var}", var,
+                 color="#FF6B6B" if "safety" in var else "#4ECDC4")
+
+    # ==== END ====
+    text_page(pdf, [
         "=" * 60,
         "END OF DATA APPENDIX",
-    ]
-    add_text_page(pdf, lines)
+        "=" * 60,
+    ])
 
 print(f"Data Appendix saved to {OUTPUT_PATH}")
